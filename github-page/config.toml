@@ -1,0 +1,6 @@
+baseURL = "https://rluckom.github.io//"
+languageCode = "en-us"
+title = "Update Title in github-page/config.toml"
+theme = "kiera"
+publishDir = "../docs"
+canonifyURLs=true
