@@ -3,29 +3,29 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://rluckom.github.io//posts/some_functions_for_vases/</loc>
+    <loc>https://rluckom.github.io/interesting-shapes/posts/some_functions_for_vases/</loc>
     <lastmod>2017-12-10T07:09:34-05:00</lastmod>
   </url>
   
   <url>
-    <loc>https://rluckom.github.io//categories/</loc>
+    <loc>https://rluckom.github.io/interesting-shapes/categories/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://rluckom.github.io//</loc>
-    <lastmod>2017-12-10T07:09:34-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://rluckom.github.io//posts/</loc>
+    <loc>https://rluckom.github.io/interesting-shapes/</loc>
     <lastmod>2017-12-10T07:09:34-05:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://rluckom.github.io//tags/</loc>
+    <loc>https://rluckom.github.io/interesting-shapes/posts/</loc>
+    <lastmod>2017-12-10T07:09:34-05:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://rluckom.github.io/interesting-shapes/tags/</loc>
     <priority>0</priority>
   </url>
   
