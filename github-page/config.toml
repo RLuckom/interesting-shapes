@@ -1,6 +1,13 @@
 baseURL = "https://rluckom.github.io//"
 languageCode = "en-us"
-title = "Update Title in github-page/config.toml"
+title = "Experiments in Three Dimensions"
 theme = "kiera"
 publishDir = "../docs"
 canonifyURLs=true
+pygmentsCodeFences = true
+pygmentsUseClassic=true
+pygmentsStyle="xcode"
+[author]
+    name = "Raphael Luckom"       #Author name
+    github = "RLuckom"     #Github username
+    linkedin = "raphaelluckom"   #LinkedIn username

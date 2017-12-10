@@ -1,0 +1,492 @@
+<!doctype html>
+
+<html lang="en-us">
+
+<head>
+  <title>Experiments in Three Dimensions</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="The HTML5 Herald" />
+  <meta name="author" content="Raphael Luckom" />
+  <meta name="generator" content="Hugo 0.31" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Slab|Ruda" />
+  <link rel="stylesheet" type="text/css" href="https://rluckom.github.io//css/styles.css" />
+</head>
+
+<body>
+  <div id="container">
+    <header>
+      <h1>
+                <a href="https://rluckom.github.io//">Experiments in Three Dimensions</a>
+            </h1>
+
+      <ul id="social-media">
+         
+        <li><a href="https://www.linkedin.com/in/raphaelluckom"><i class="fa fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+         
+        <li><a href="https://github.com/RLuckom"><i class="fa fa-github fa-lg" aria-hidden="true"></i></a></li>
+           
+      </ul>
+      
+    </header>
+
+    
+<nav>
+    <ul>
+        
+    </ul>
+</nav>
+
+    <main>
+
+
+
+
+<article>
+
+    <h1>Encapsulation and Abstraction in 3D: Modules for Vase Sculptures in OpenSCAD</h1>
+
+    
+        <aside>
+    <ul>
+        <li>
+            <time class="post-date" datetime="2017-12-10T07:09:34-05:00">Dec 10, 2017</time>
+        </li>
+        
+        
+
+        
+
+        <li>9 min read</li>
+    </ul>
+</aside>
+    
+
+    <p><em>This is the first in what I expect to be an occasional series about
+3D models and prints that I design. The code for this post, and some
+3D models, are available in <a href="https://github.com/RLuckom/interesting-shapes">the associated github repo</a>.</em></p>
+
+<p>If you get into 3D printing, it&rsquo;s almost inevitable that you&rsquo;ll
+eventually print a vase. Vases are in a particular sweet spot&ndash;
+they&rsquo;re sculptural, architectural, and potentially intricate, but
+with very few structural requirements. You can show off the precision
+of the printer and its flexibility without worrying that it has
+to hold a load, or withstand forces trying to break it at layer
+boundaries.</p>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/phone_holder.jpg" />
+    
+    
+    <figcaption>
+        <h4>Phone holder. Resists shearing forces from screws, bending forces from knobs. Can clamp to the side of a table.</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/shower_holder.jpg" />
+    
+    
+    <figcaption>
+        <h4>Shower caddy holder printed in nylon. Resists heat, water, shearing forces from screws, and holds a load.</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/vases.jpg" />
+    
+    
+    <figcaption>
+        <h4>Vases. Stand upright, look pretty. One of them held some dry leaves, for a while.</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>Vases fit the build area of most printers well&ndash;they
+exercise a lot of the Z-axis but their narrow footprint makes each
+layer relatively fast&ndash;a 6-hour print on draft settings instead
+of a 15 or even 20-hour print for a wider, tall part. And if you
+broaden the definition of &ldquo;vase&rdquo; to include objects that couldn&rsquo;t
+actually keep flowers in water, you can explore your printer&rsquo;s
+performance limits as well&ndash;how much of a <a href="http://www.3dprintingera.com/3d-printing-overhangs-and-bridges/">bridge or overhang</a>
+can you get away with? How small can you make a detail?</p>
+
+<p>My latest vase was an exercise in tiling a simple shape. I took
+an <a href="https://en.wikipedia.org/wiki/Islamic_geometric_patterns#/media/File:OctagonalTesselations2.png">octogon-based pattern</a>
+that I found on Wikipedia, modified it for printability, and composed
+it into a tower structure. The result weighs in at a 64 lines of
+<a href="http://www.openscad.org/">OpenSCAD</a>, and I was pleased with how it
+printed. While I was designing it, I got some ideas for library
+functions, and now I&rsquo;m back to harvest a few of them.</p>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/vase_building_blocks.png" />
+    
+    
+    <figcaption>
+        <h4>Vase Building Blocks</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>The figure above shows the basic building blocks of the vase. It starts
+with a bar, then a single figure, which is projected around an axis to form a
+ring. These rings are then repeated vertically to form a vase structure.
+In this case, each ring is tilted inward or outward, giving the final
+product an undulating profile. In each ring, the shape itself is alternated
+with its mirror image. Other modifications to the basic scheme are possible&ndash;
+using two alternating shapes, stretching or compressing various aspects,
+even curving or distorting things. For now, though, I want to build a couple
+of basic functions that take a simple shape and tile it into a vase. I&rsquo;ll try
+to keep potential improvements in mind as I go, without getting too distracted
+trying to follow up on every idea. Start small, stay focused, work hard for
+a while, write up my notes, then rest. That&rsquo;s my optimal cycle.</p>
+
+<p>I&rsquo;ll use a rectangle as my basic tile. The rectangle will stand in for the
+octogon from the last vase, or any shape I decide on later.</p>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/square.png" />
+    
+    
+    <figcaption>
+        <h4>Basic Tile</h4>
+        
+    </figcaption>
+    
+</figure>
+
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #177500">// FN controls how many faces the cylinders</span>
+<span style="color: #177500">// and circles have. I keep it to a low value</span>
+<span style="color: #177500">// during development to speed up render time.</span>
+<span style="color: #000000">FN=</span><span style="color: #1C01CE">8</span>;
+
+<span style="color: #177500">// Default bar diameter.</span>
+<span style="color: #000000">DIA=</span><span style="color: #1C01CE">4</span>;
+
+<span style="color: #177500">// This method of making a bar takes the convex hull</span>
+<span style="color: #177500">// of a pair of spheres centered at the specified points.</span>
+<span style="color: #177500">// I like this method better than using cylinders for two</span>
+<span style="color: #177500">// reasons. First, it&#39;s usually easier to just specify the</span>
+<span style="color: #177500">// beginning and end points of the line you want to draw than</span>
+<span style="color: #177500">// to work out the rotation and translation factors for </span>
+<span style="color: #177500">// a cylinder of the right length and diameter. Second, the</span>
+<span style="color: #177500">// spherical ends of a bar created this way are much better</span>
+<span style="color: #177500">// for connecting multiple bars together than the flat ends</span>
+<span style="color: #177500">// of a cylinder.</span>
+<span style="color: #177500">//</span>
+<span style="color: #177500">// @param a (Array) : [x, y, z]</span>
+<span style="color: #177500">// @param b (Array) : [x, y, z]</span>
+<span style="color: #177500">// @param dia (Number) : diameter</span>
+<span style="color: #A90D91">module</span> <span style="color: #000000">bar</span>(<span style="color: #000000">a</span>, <span style="color: #000000">b</span>, <span style="color: #000000">dia=DIA</span>, <span style="color: #000000">$fn=FN</span>) {
+  <span style="color: #A90D91">hull</span>() {
+    <span style="color: #A90D91">translate</span>(<span style="color: #000000">a</span>) <span style="color: #A90D91">sphere</span>(<span style="color: #000000">DIA</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #000000">$fn=$fn</span>);
+    <span style="color: #A90D91">translate</span>(<span style="color: #000000">b</span>) <span style="color: #A90D91">sphere</span>(<span style="color: #000000">DIA</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #000000">$fn=$fn</span>);
+  }
+}
+
+<span style="color: #A90D91">module</span> <span style="color: #000000">bar_rect</span>(<span style="color: #000000">height</span>, <span style="color: #000000">width</span>) {
+  <span style="color: #000000">bar</span>([<span style="color: #000000">-width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>], [<span style="color: #000000">width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]);
+  <span style="color: #000000">bar</span>([<span style="color: #000000">-width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">height</span>], [<span style="color: #000000">width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">height</span>]);
+  <span style="color: #000000">bar</span>([<span style="color: #000000">width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>], [<span style="color: #000000">width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">height</span>]);
+  <span style="color: #000000">bar</span>([<span style="color: #000000">-width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>], [<span style="color: #000000">-width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">height</span>]);
+}
+
+<span style="color: #000000">bar_rect</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">10</span>);
+</code></pre></div>
+
+<p>Next, I want to write a module that creates a ring of rectangles.
+What I want is a function like this:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">ring</span>(<span style="color: #000000">side_width</span>, <span style="color: #000000">num_sides</span>) {
+  <span style="color: #A90D91">for</span> (<span style="color: #000000">side</span> <span style="color: #000000">=</span> [<span style="color: #1C01CE">0</span><span style="color: #000000">:num_sides</span> <span style="color: #000000">-</span> <span style="color: #1C01CE">1</span>]) {
+    <span style="color: #A90D91">rotate</span>[[<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">side</span> <span style="color: #000000">*</span> <span style="color: #1C01CE">360</span> <span style="color: #000000">/</span> <span style="color: #000000">num_sides</span>]) {
+      <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">0</span>, <span style="color: #177500">/* correct distance from center*/</span>, <span style="color: #1C01CE">0</span>]) {
+        <span style="color: #177500">/* shape */</span>;
+      }
+    }
+  }
+}
+</code></pre></div>
+
+<p>First, I need to figure out the distance each side should be from
+the center. The following figure shows four rectangles arranged
+around the origin. The module needs to figure out how far along
+the red lines to place the objects so that their edges meet, using
+only the number of objects and their base width. I can <em>hear</em> my
+10th-grade geometry teacher laughing at me.</p>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/distance.png" />
+    
+    
+    <figcaption>
+        <h4>Revenge of Trigonometry</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>I know that the angle between the blue lines is <code>360 / num_sides</code>,
+which in this case means <code>90</code>. I know that the angle between a blue
+line and either of its red neighbors is half the angle between the
+blue lines: <code>45</code>, in this case. I want to place the rectangles at
+the spot on the red lines where their corners land exactly on the
+neighboring blue lines. So the distance between the red line at the
+specified point and the neighboring blue line should be half of the
+width of the base of the rectangle.</p>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/half_base.png" />
+    
+    
+    <figcaption>
+        <h4>The distance between the red and blue lines where the tile should go is half the width of the tile</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>This is pretty nice. If I imagine that the blue line is a function
+of x, I know that its slope is the tangent of the angle at which it
+meets the x-axis. And if I know the slope, it&rsquo;s easy to find the
+point where the value of the function is half of the width&ndash;I just
+divide half the width by the slope.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #000000">angle_between_sides</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">360</span> <span style="color: #000000">/</span> <span style="color: #000000">num_sides</span>;
+<span style="color: #000000">angle_to_axis</span> <span style="color: #000000">=</span> <span style="color: #000000">angle_between_sides</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>;
+<span style="color: #000000">distance_from_center</span> <span style="color: #000000">=</span>  <span style="color: #000000">tile_width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span> <span style="color: #000000">/</span> <span style="color: #A90D91">tan</span>(<span style="color: #000000">angle_to_axis</span>);
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/cube_vase.png" />
+    
+    
+    <figcaption>
+        <h4>Perfect!</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>Now I can fill in one missing piece of my <code>ring</code> module:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">ring</span>(<span style="color: #000000">side_width</span>, <span style="color: #000000">num_sides</span>) {
+  <span style="color: #000000">angle_between_sides</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">360</span> <span style="color: #000000">/</span> <span style="color: #000000">num_sides</span>;
+  <span style="color: #000000">angle_to_axis</span> <span style="color: #000000">=</span> <span style="color: #000000">angle_between_sides</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>;
+  <span style="color: #000000">distance_from_center</span> <span style="color: #000000">=</span> <span style="color: #000000">tile_width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span> <span style="color: #000000">/</span> <span style="color: #A90D91">tan</span>(<span style="color: #000000">angle_to_axis</span>);
+
+  <span style="color: #A90D91">for</span> (<span style="color: #000000">side</span> <span style="color: #000000">=</span> [<span style="color: #1C01CE">0</span><span style="color: #000000">:num_sides</span> <span style="color: #000000">-</span> <span style="color: #1C01CE">1</span>]) {
+    <span style="color: #A90D91">rotate</span>[[<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">side</span> <span style="color: #000000">*</span> <span style="color: #1C01CE">360</span> <span style="color: #000000">/</span> <span style="color: #000000">num_sides</span>]) {
+      <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">0</span>, <span style="color: #000000">distance_from_center</span>, <span style="color: #1C01CE">0</span>]) {
+        <span style="color: #177500">/* shape */</span>;
+      }
+    }
+  }
+}
+</code></pre></div>
+
+<p>Now there&rsquo;s an issue. OpenSCAD doesn&rsquo;t actually store models as
+variables; that is, the expression</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #000000">my_cube</span> <span style="color: #000000">=</span> <span style="color: #A90D91">cube</span>([<span style="color: #1C01CE">10</span>, <span style="color: #1C01CE">10</span>, <span style="color: #1C01CE">10</span>]);
+</code></pre></div>
+
+<p>is not valid. Another limitation is that modules aren&rsquo;t first-class
+objects&ndash;they can&rsquo;t be passed as arguments to other modules. This
+makes repeating a shape a bit inconvenient&ndash;if I can&rsquo;t pass the shape
+as an argument to my <code>ring</code> module, and I can&rsquo;t pass the module that
+defines it as an argument either, I need another way to access it
+within the loop. Fortunately, there is a way to do this&ndash;it&rsquo;s just
+not very obvious.</p>
+
+<p>Many OpenSCAD functions like <code>translate</code> and <code>rotate</code> affect the
+models that appear after them in a statement. The following two
+expressions are equivalent:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">10</span>, <span style="color: #1C01CE">10</span>, <span style="color: #1C01CE">10</span>]) <span style="color: #A90D91">sphere</span>(<span style="color: #1C01CE">4</span>);
+
+<span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">10</span>, <span style="color: #1C01CE">10</span>, <span style="color: #1C01CE">10</span>]) {
+  <span style="color: #A90D91">sphere</span>(<span style="color: #1C01CE">4</span>);
+}
+</code></pre></div>
+
+<p>In this syntax, the <code>sphere</code> object is one of the <code>children</code> within
+the <code>translate</code> block. I can use this same syntax within my module:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">ring</span>(<span style="color: #000000">side_width</span>, <span style="color: #000000">num_sides</span>) {
+  <span style="color: #000000">angle_between_sides</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">360</span> <span style="color: #000000">/</span> <span style="color: #000000">num_sides</span>;
+  <span style="color: #000000">angle_to_axis</span> <span style="color: #000000">=</span> <span style="color: #000000">angle_between_sides</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span>;
+  <span style="color: #000000">distance_from_center</span> <span style="color: #000000">=</span> <span style="color: #000000">tile_width</span> <span style="color: #000000">/</span> <span style="color: #1C01CE">2</span> <span style="color: #000000">/</span> <span style="color: #A90D91">tan</span>(<span style="color: #000000">angle_to_axis</span>);
+
+  <span style="color: #A90D91">for</span> (<span style="color: #000000">side</span> <span style="color: #000000">=</span> [<span style="color: #1C01CE">0</span><span style="color: #000000">:num_sides</span> <span style="color: #000000">-</span> <span style="color: #1C01CE">1</span>]) {
+    <span style="color: #A90D91">rotate</span>[[<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">side</span> <span style="color: #000000">*</span> <span style="color: #1C01CE">360</span> <span style="color: #000000">/</span> <span style="color: #000000">num_sides</span>]) {
+      <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">0</span>, <span style="color: #000000">distance_from_center</span>, <span style="color: #1C01CE">0</span>]) {
+        <span style="color: #A90D91">children</span>(<span style="color: #1C01CE">0</span>);
+      }
+    }
+  }
+}
+</code></pre></div>
+
+<p>Now, if I want to make a ring with 47 sides, all tiled with the same
+rectangle, I can just use</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #000000">ring</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">47</span>) <span style="color: #000000">bar_rect</span>(<span style="color: #1C01CE">30</span>, <span style="color: #1C01CE">20</span>);
+</code></pre></div>
+
+
+<figure class="full">
+    
+        <img src="https://rluckom.github.io//img/ring_47.png" />
+    
+    
+    <figcaption>
+        <h4>It would have been no fun to figure this out by hand</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>I know I said that I was going to stay focused on a simple use case
+and not get distracted trying to implement <em>every</em> cool feature I
+could think of, but there&rsquo;s one simple change to this function that
+will let me alternate tiles within the ring. The <code>$children</code> variable
+automatically gets set to the total number of children in the block.
+So if I just change <code>children(0)</code> to <code>children(side % $children)</code>
+it will automatically repeat <em>any</em> number of children as it goes
+through the ring.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #000000">ring</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">47</span>) {
+  <span style="color: #A90D91">rotate</span>([<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) <span style="color: #000000">bar_rect</span>(<span style="color: #1C01CE">30</span>, <span style="color: #1C01CE">20</span>);
+  <span style="color: #A90D91">rotate</span>([<span style="color: #000000">-</span><span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) <span style="color: #000000">bar_rect</span>(<span style="color: #1C01CE">30</span>, <span style="color: #1C01CE">20</span>);
+}
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/alternating_ring.png" />
+    
+    
+</figure>
+
+
+<p>At this point you can see the possibility for some extraordinarily
+powerful abstractions. For instance, I should be able to make a
+ring of rings:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #000000">ring</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">47</span>) {
+  <span style="color: #000000">ring</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">4</span>) <span style="color: #000000">bar_rect</span>(<span style="color: #1C01CE">30</span>, <span style="color: #1C01CE">20</span>);
+}
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/ring_ring.png" />
+    
+    
+</figure>
+
+
+<p>But this was about vases, which means that I still owe a module
+for stacking rings to make a vase. All the building blocks of that
+module are already included in the <code>ring</code> module. In fact, it would
+be easy to add an outer loop in the <code>ring</code> module and an argument
+to specify the number of levels. But I noticed that it was actually
+more flexible to be able to specify a series of individual tiles,
+so I think I&rsquo;ll also want the flexibility to specify individual
+rings.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">stack</span>(<span style="color: #000000">height</span>, <span style="color: #000000">num_levels</span>) {
+  <span style="color: #A90D91">for</span> (<span style="color: #000000">level</span> <span style="color: #000000">=</span> [<span style="color: #1C01CE">0</span><span style="color: #000000">:num_levels</span> <span style="color: #000000">-</span> <span style="color: #1C01CE">1</span>]) {
+    <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">level</span> <span style="color: #000000">*</span> <span style="color: #000000">height</span>]) {
+      <span style="color: #A90D91">children</span>(<span style="color: #000000">level</span> <span style="color: #000000">%</span> <span style="color: #000000">$children</span>);
+    }
+  }
+}
+
+<span style="color: #000000">stack</span>(<span style="color: #1C01CE">30</span>, <span style="color: #1C01CE">6</span>) <span style="color: #000000">ring</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">47</span>) {
+  <span style="color: #000000">ring</span>(<span style="color: #1C01CE">20</span>, <span style="color: #1C01CE">4</span>) <span style="color: #000000">bar_rect</span>(<span style="color: #1C01CE">30</span>, <span style="color: #1C01CE">20</span>);
+}
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io//img/stack.png" />
+    
+    
+</figure>
+
+
+<p>There are plenty of other ways to extend these ideas, but I&rsquo;m going
+to leave them as an exercise for the reader. If you found this interesting,
+I strongly encourage you to download a copy of OpenSCAD and try it out
+for yourself. All the code is available in <a href="https://github.com/RLuckom/interesting-shapes">the github repo</a> associated with
+this page.</p>
+
+<p>In the 3d-printing community, it sometimes feels like OpenSCAD
+is the more &ldquo;technical&rdquo; modelling software, as opposed to more &ldquo;artistic&rdquo;
+software that&rsquo;s used for figure sculptures and the like. I think that OpenSCAD
+requires a lot of creativity, though. The thing I love about it is that it
+allows you to build a kind of <em>fluency</em> in the language of physical objects&ndash;
+it helps you amass a personal vocabulary of little tricks and techniques that
+build on each other using the familiar software (and linguistic!) tools of
+abstraction and encapsulation. Learning to exactly specify and describe
+what you want allows you to compose your ideas into more and more complex
+structures not limited by your own attention span or manual skill. Don&rsquo;t get
+me wrong; I&rsquo;m not saying this is <em>better</em> than any other way. Just
+that creative expression is a valuable thing, and sometimes the medium is
+code.</p>
+
+
+</article>
+
+
+<section class="post-nav">
+    <ul>
+        
+        
+    </ul>
+</section>
+    
+
+
+
+
+
+</main>
+    <footer>
+        <h6> | 
+            Rendered by <a href="https://gohugo.io" title="Hugo">Hugo</a> |
+            <a href="https://rluckom.github.io//index.xml">Subscribe</a></h6>
+    </footer>
+</div>
+<script src="https://rluckom.github.io//js/scripts.js"></script>
+</body>
+
+</html>

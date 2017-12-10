@@ -65,6 +65,7 @@ difference() {
 } 
 }
 
-octogon();
-translate([120, 0, 0,]) level();
-translate([300, 0, 0,]) vase();
+bar([60, 0, 0], [60, 0, 70]);
+translate([120, 0, 0]) octogon();
+translate([240, 0, 0,]) level();
+translate([420, 0, 0,]) vase();
