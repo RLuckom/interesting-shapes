@@ -1,0 +1,490 @@
+<!doctype html>
+
+<html lang="en-us">
+
+<head>
+  <title>Experiments in Three Dimensions</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="The HTML5 Herald" />
+  <meta name="author" content="Raphael Luckom" />
+  <meta name="generator" content="Hugo 0.31" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Slab|Ruda" />
+  <link rel="stylesheet" type="text/css" href="https://rluckom.github.io/interesting-shapes/css/styles.css" />
+</head>
+
+<body>
+  <div id="container">
+    <header>
+      <h1>
+                <a href="https://rluckom.github.io/interesting-shapes/">Experiments in Three Dimensions</a>
+            </h1>
+
+      <ul id="social-media">
+         
+        <li><a href="https://www.linkedin.com/in/raphaelluckom"><i class="fa fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+         
+        <li><a href="https://github.com/RLuckom"><i class="fa fa-github fa-lg" aria-hidden="true"></i></a></li>
+           
+      </ul>
+      
+    </header>
+
+    
+<nav>
+    <ul>
+        
+    </ul>
+</nav>
+
+    <main>
+
+
+
+
+<article>
+
+    <h1>Distortion Fields in OpenSCAD: Computationally Expensive And Not Entirely Satisfying, But Good To Know Anyway</h1>
+
+    
+        <aside>
+    <ul>
+        <li>
+            <time class="post-date" datetime="2017-12-10T07:09:34-05:00">Dec 10, 2017</time>
+        </li>
+        
+        
+
+        
+
+        <li>9 min read</li>
+    </ul>
+</aside>
+    
+
+    <p><em>This is the second in an occasional series about 3D models and prints that
+I design. The code for this post, and some 3D models, are available in
+<a href="https://github.com/RLuckom/interesting-shapes">the associated github repo</a>. The
+code for this post was largely inspired by the <a href="https://www.thingiverse.com/thing:210099">bending procedures</a>
+posted to Thingiverse by the user flavius</em></p>
+
+<p>In the <a href="https://rluckom.github.io/interesting-shapes/posts/some_functions_for_vases/">previous post</a>, I described how to use the <code>children</code> module in OpenSCAD
+to repeat models in regular patterns&ndash;specifically, to make cylindrical tiled
+vase sculptures. This post will explore what I call <em>distortion fields</em>&ndash;modules
+that apply non-homogenous transformations to their children. A word of
+warning: these techniques are extremely computationally expensive if you want
+good results in many common cases. They also tend to require some massaging
+to fit each specific case, so it&rsquo;s worth understanding how they work. The good
+news is that with a few helper functions, distortion fields are fairly simple
+to implement, so it&rsquo;s mostly a matter of coding for 10 minutes, pressing
+&ldquo;render,&rdquo; and going to get a beer.</p>
+
+<p>A good example of where a distortion field can be useful is in a model of an
+airplane wing (warning: I know nothing about actual aerodynamics).
+Wikipedia gives me <a href="https://en.wikipedia.org/wiki/Airfoil#/media/File:Wing_profile_nomenclature.svg">a nice cross-section of an airfoil</a>.</p>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/airfoil.svg" />
+    
+    
+    <figcaption>
+        <h4>Image credit: Olivier Cleynen</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>I&rsquo;d like to take that cross-section and use <code>linear_extrude</code> to stretch it out
+into a wing.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">linear_extrude</span>(<span style="color: #000000">height</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">203</span>) <span style="color: #A90D91">import</span>(<span style="color: #C41A16">&quot;../dxf/airfoil.dxf&quot;</span>);
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/extruded_airfoil.png" />
+    
+    
+    <figcaption>
+        <h4>Airfoil cross section extruded</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>But that&rsquo;s not right. Wings are wider at their base, where they connect to the
+fuselage, and narrower at their tip. They&rsquo;re also usually more triangular,
+in top-down view, than rectangular. What I need to make this extruded airfoil
+into a wing is to apply a kind of &ldquo;scale-gradient,&rdquo; so that it gets smaller
+from one end to the other, and also a &ldquo;translation-gradient&rdquo; so that it sweeps
+back from the big end to the small end.</p>
+
+<p>The <code>linear_extrude</code> function <em>does</em> have a <code>scale</code> parameter, which will
+help a little bit in this case.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">scaled_extruded_airfoil</span>() {
+  <span style="color: #A90D91">linear_extrude</span>(<span style="color: #000000">height</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">203</span>, <span style="color: #A90D91">scale</span><span style="color: #000000">=</span>[<span style="color: #1C01CE">0.3</span>, <span style="color: #1C01CE">0.3</span>]) {
+    <span style="color: #A90D91">import</span>(<span style="color: #C41A16">&quot;../dxf/airfoil.dxf&quot;</span>);
+  }
+}
+
+<span style="color: #000000">scaled_extruded_airfoil</span>();
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/scaled_extruded_airfoil.png" />
+    
+    
+    <figcaption>
+        <h4>Airfoil cross section extruded and scaled along its length</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>This is good, but it doesn&rsquo;t give you a way to control where the end of the extruded
+shape &ldquo;lands.&rdquo; The leading edge of the wing is a straight line, based on some internal
+representation of the origin of the 2D shape being extruded. I&rsquo;d like the leading
+edge of the wing to be swept back. Also, in many cases the model to be scaled will
+be 3D, so this nice <code>linear_extrude</code> scaling trick won&rsquo;t be available. Or I might
+want to scale an object in a way that is <em>not</em> linear along its length, and this
+trick won&rsquo;t be suitable.</p>
+
+<p>One way to try to achieve a &ldquo;scaled and swept-back&rdquo; effect is with a clever use
+of <code>hull</code> to unite a big, thin airfoil cross-section with a smaller cross-section
+translated one wing-length away. This is a good approach when it works, because
+it is far cheaper, and the result far smoother, than using a distortion field, as we&rsquo;ll
+see. But <code>hull</code> has its own price: it eliminates any concave details in the
+model. Holes and indentations, like the scooped bottom of the airfoil, do not
+survive.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">hull_wing</span>() {
+  <span style="color: #A90D91">hull</span>() {  
+    <span style="color: #A90D91">linear_extrude</span>(<span style="color: #000000">height</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">0.5</span>) {
+      <span style="color: #A90D91">scale</span>([<span style="color: #1C01CE">0.2</span>, <span style="color: #1C01CE">0.2</span>, <span style="color: #1C01CE">1</span>]) <span style="color: #A90D91">import</span>(<span style="color: #C41A16">&quot;../dxf/airfoil.dxf&quot;</span>);
+    }
+    <span style="color: #A90D91">translate</span>([<span style="color: #000000">-</span><span style="color: #1C01CE">100</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">203</span>]) {
+      <span style="color: #A90D91">linear_extrude</span>(<span style="color: #000000">height</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">0.5</span>) <span style="color: #A90D91">import</span>(<span style="color: #C41A16">&quot;../dxf/airfoil.dxf&quot;</span>);
+    }
+  }
+}
+
+<span style="color: #000000">hull_wing</span>();
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/hull_wing.png" />
+    
+    
+    <figcaption>
+        <h4>The hull operation flattens the previously-concave underside of the wing</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>As an introduction to how distortion fields work, let&rsquo;s look at how OpenSCAD
+models cylinders. If I make a simple cylinder, the result will be a prism
+with very obvious facets, not a smoothly-curved one.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">cylinder</span>(<span style="color: #1C01CE">10</span>, <span style="color: #000000">d-</span><span style="color: #1C01CE">5</span>);
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/default_cylinder.png" />
+    
+    
+    <figcaption>
+        <h4>A default cylinder is not very curved</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>If I want a cylinder with a smooth surface, I can manually specify the
+number of facets using the <code>$fn</code> parameter.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">cylinder</span>(<span style="color: #1C01CE">10</span>, <span style="color: #000000">d-</span><span style="color: #1C01CE">5</span>, <span style="color: #000000">$fn=</span><span style="color: #1C01CE">30</span>);
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/fn_30_cylinder.png" />
+    
+    
+    <figcaption>
+        <h4>With 30 facets, this looks more like a cylinder.</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>The best number of facets is the lowest number that still looks like a
+curve in the eventual object. I&rsquo;m usually making models for 3D printing,
+and I know that when each facet is small enough, the printer is just
+going to print a smooth curve. The central idea is that small-enough details
+blend together.</p>
+
+<p>To apply that idea to the wing model, I can imagine applying successive
+transformations to arbitrarily-small slices of the wing, so that the
+final result would be a relatively-smooth approximation of the shape I wanted.
+I <em>could</em> make thin wing slices with successive calls to <code>linear_extrude,</code> but
+for the sake of demonstration I&rsquo;m going to pretend that I only have a 3D
+model to work with, which is often the case in practice. I can take a short,
+wide cylinder (really any shape that can surround the 2D wing shape) and
+superimpose it on the wing.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">extruded_airfoil_cylinder_superimposed</span>() {
+  <span style="color: #A90D91">linear_extrude</span>(<span style="color: #000000">height</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">203</span>) <span style="color: #A90D91">import</span>(<span style="color: #C41A16">&quot;../dxf/airfoil.dxf&quot;</span>);
+  <span style="color: #A90D91">color</span>(<span style="color: #C41A16">&quot;red&quot;</span>) <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">100</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) <span style="color: #A90D91">cylinder</span>(<span style="color: #1C01CE">1</span>, <span style="color: #000000">d=</span><span style="color: #1C01CE">300</span>);
+}
+
+<span style="color: #000000">extruded_airfoil_cylinder_superimposed</span>();
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/extruded_airfoil_cylinder_superimposed.png" />
+    
+    
+</figure>
+
+
+<p>Now, if I take the intersection of these shapes, I should be left with a slice
+of the wing that has the same (thin) height as the red cylinder.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">intersection_airfoil_cylinder</span>() {
+  <span style="color: #000000">intersection</span>() {
+    <span style="color: #A90D91">linear_extrude</span>(<span style="color: #000000">height</span> <span style="color: #000000">=</span> <span style="color: #1C01CE">203</span>) <span style="color: #A90D91">import</span>(<span style="color: #C41A16">&quot;../dxf/airfoil.dxf&quot;</span>);
+    <span style="color: #A90D91">color</span>(<span style="color: #C41A16">&quot;red&quot;</span>) <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">100</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) <span style="color: #A90D91">cylinder</span>(<span style="color: #1C01CE">1</span>, <span style="color: #000000">d=</span><span style="color: #1C01CE">300</span>);
+  }
+}
+
+<span style="color: #000000">intersection_airfoil_cylinder</span>();
+</code></pre></div>
+
+
+<figure >
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/intersection_airfoil_cylinder.png" />
+    
+    
+    <figcaption>
+        <h4>A thin slice of the airfoil where it intersects with the cylinder</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>There&rsquo;s a special kind of tipping point I always look for in any technical
+project. It&rsquo;s the point where I&rsquo;ve figured out, not <em>exactly</em> how to do
+the thing I want, but enough to know that it <em>can</em> be done. Sometimes
+the process of getting to that tipping point is called &ldquo;driving out risk,&rdquo;
+with the idea that once you hit it, there are no more risks that have the
+potential to fundamentally prevent what you want to do. After I know that
+I have all the building blocks to realize my idea, my next step is to get
+a working version, no matter mow ugly. Once I have a working version I can
+refine it as necessary (but it&rsquo;s surprising how often an initial version
+works for all the cases that matter!).</p>
+
+<p>At this point I have all the building blocks I need to make the wing.</p>
+
+<ul>
+<li>I can make a thin slice of an object if I know its approximate dimensions in X and Y.</li>
+<li>I can scale and translate a thin slice of an object.</li>
+<li>I can use the <code>children</code> module to refer to an object to be distorted.</li>
+</ul>
+
+<p>In pseudocode, the algorithm I want to implement looks like:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #177500">// This isn&#39;t real code!</span>
+<span style="color: #177500">// start and end are [x, y, z] vectors for the translation.</span>
+<span style="color: #A90D91">module</span> <span style="color: #000000">translate_field</span>(<span style="color: #000000">diameter</span>, <span style="color: #000000">height</span>, <span style="color: #000000">steps</span>, <span style="color: #000000">start</span>, <span style="color: #000000">end</span>) {
+  <span style="color: #A90D91">for</span> (<span style="color: #000000">i=</span>[<span style="color: #1C01CE">0</span><span style="color: #000000">:steps</span> <span style="color: #000000">-</span> <span style="color: #1C01CE">1</span>]) {
+    <span style="color: #177500">// take the intersection of the transformed object and</span>
+    <span style="color: #177500">// a cylinder to cut out a thin slice</span>
+    <span style="color: #000000">intersection</span>() {
+      <span style="color: #177500">// apply the appropriate transformation to the object.</span>
+      <span style="color: #177500">// note that the interpolate function doesn&#39;t</span>
+      <span style="color: #177500">//exist in OpenSCAD, I need to write it myself</span>
+      <span style="color: #A90D91">translate</span>(<span style="color: #000000">interpolate</span>(<span style="color: #000000">start</span>, <span style="color: #000000">end</span>, <span style="color: #000000">steps</span>, <span style="color: #000000">step</span>)) {
+         <span style="color: #A90D91">children</span>(<span style="color: #1C01CE">0</span>);
+      }
+      <span style="color: #177500">// translate a thin cylinder to the correct height for this</span>
+      <span style="color: #177500">// step on the original object</span>
+      <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">i</span> <span style="color: #000000">*</span> (<span style="color: #000000">height</span> <span style="color: #000000">/</span> <span style="color: #000000">steps</span>)]) {
+        <span style="color: #A90D91">cylinder</span>((<span style="color: #000000">height</span> <span style="color: #000000">/</span> <span style="color: #000000">steps</span>), <span style="color: #000000">d=diameter</span>);
+      }
+    }
+  }
+}
+</code></pre></div>
+
+<p>Functions in OpenSCAD have a kind of odd syntax. I haven&rsquo;t looked
+into it in depth, but when I need to write one I often refer to
+<a href="https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Functions">the documentation</a>.
+Suffice it to say that the <code>interpolate</code> function can be implemented
+this way:</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">function</span> <span style="color: #000000">interp</span>(<span style="color: #000000">start</span>, <span style="color: #000000">end</span>, <span style="color: #000000">steps</span>, <span style="color: #000000">step</span>) <span style="color: #000000">=</span>
+  <span style="color: #A90D91">let</span> (<span style="color: #000000">pct</span> <span style="color: #000000">=</span> <span style="color: #000000">step</span> <span style="color: #000000">/</span> <span style="color: #000000">steps</span>)
+  [
+   <span style="color: #000000">start</span>[<span style="color: #1C01CE">0</span>] <span style="color: #000000">+</span> (<span style="color: #000000">pct</span> <span style="color: #000000">*</span> (<span style="color: #000000">end</span>[<span style="color: #1C01CE">0</span>] <span style="color: #000000">-</span> <span style="color: #000000">start</span>[<span style="color: #1C01CE">0</span>])),
+   <span style="color: #000000">start</span>[<span style="color: #1C01CE">1</span>] <span style="color: #000000">+</span> (<span style="color: #000000">pct</span> <span style="color: #000000">*</span> (<span style="color: #000000">end</span>[<span style="color: #1C01CE">1</span>] <span style="color: #000000">-</span> <span style="color: #000000">start</span>[<span style="color: #1C01CE">1</span>])),
+   <span style="color: #000000">start</span>[<span style="color: #1C01CE">2</span>] <span style="color: #000000">+</span> (<span style="color: #000000">pct</span> <span style="color: #000000">*</span> (<span style="color: #000000">end</span>[<span style="color: #1C01CE">2</span>] <span style="color: #000000">-</span> <span style="color: #000000">start</span>[<span style="color: #1C01CE">2</span>])),
+  ];
+</code></pre></div>
+
+<p>This is a good linear interpolation function, but I actually
+don&rsquo;t want to permit translation in the Z-axis, so I can write
+a helper function that prevents it.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">function</span> <span style="color: #000000">xy_interp</span>(<span style="color: #000000">start</span>, <span style="color: #000000">end</span>, <span style="color: #000000">steps</span>, <span style="color: #000000">step</span>) <span style="color: #000000">=</span>
+  <span style="color: #000000">interp</span>([<span style="color: #000000">start</span>[<span style="color: #1C01CE">0</span>], <span style="color: #000000">start</span>[<span style="color: #1C01CE">1</span>], <span style="color: #1C01CE">0</span>], [<span style="color: #000000">end</span>[<span style="color: #1C01CE">0</span>], <span style="color: #000000">end</span>[<span style="color: #1C01CE">1</span>], <span style="color: #1C01CE">0</span>], <span style="color: #000000">steps</span>, <span style="color: #000000">step</span>);
+</code></pre></div>
+
+<p>Now I should be able to use this function to complete the <code>translate_field</code>
+function and use it to modify the scaled extruded airfoil.</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #177500">// start and end are [x, y, z] vectors for the translation.</span>
+<span style="color: #A90D91">module</span> <span style="color: #000000">translate_field</span>(<span style="color: #000000">diameter</span>, <span style="color: #000000">height</span>, <span style="color: #000000">steps</span>, <span style="color: #000000">start</span>, <span style="color: #000000">end</span>) {
+  <span style="color: #A90D91">for</span> (<span style="color: #000000">i=</span>[<span style="color: #1C01CE">0</span><span style="color: #000000">:steps</span> <span style="color: #000000">-</span> <span style="color: #1C01CE">1</span>]) {
+    <span style="color: #177500">// take the intersection of the transformed object and</span>
+    <span style="color: #177500">// a cylinder to cut out a thin slice</span>
+    <span style="color: #000000">intersection</span>() {
+      <span style="color: #177500">// apply the appropriate transformation to the object.</span>
+      <span style="color: #177500">// note that the interpolate function doesn&#39;t</span>
+      <span style="color: #177500">//exist in OpenSCAD, I need to write it myself</span>
+      <span style="color: #A90D91">translate</span>(<span style="color: #000000">xy_interp</span>(<span style="color: #000000">start</span>, <span style="color: #000000">end</span>, <span style="color: #000000">steps</span>, <span style="color: #000000">i</span>)) {
+         <span style="color: #A90D91">children</span>(<span style="color: #1C01CE">0</span>);
+      }
+      <span style="color: #177500">// translate a thin cylinder to the correct height for this</span>
+      <span style="color: #177500">// step on the original object</span>
+      <span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #000000">i</span> <span style="color: #000000">*</span> (<span style="color: #000000">height</span> <span style="color: #000000">/</span> <span style="color: #000000">steps</span>)]) {
+        <span style="color: #A90D91">cylinder</span>((<span style="color: #000000">height</span> <span style="color: #000000">/</span> <span style="color: #000000">steps</span>), <span style="color: #000000">d=diameter</span>);
+      }
+    }
+  }
+}
+
+<span style="color: #A90D91">module</span> <span style="color: #000000">scaled_translated_wing</span>(<span style="color: #000000">steps</span>) {
+  <span style="color: #000000">translate_field</span>(<span style="color: #1C01CE">600</span>, <span style="color: #1C01CE">203</span>, <span style="color: #000000">steps</span>, [<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>], [<span style="color: #1C01CE">100</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) {
+    <span style="color: #000000">scaled_extruded_airfoil</span>();
+  }
+}
+
+<span style="color: #A90D91">translate</span>([<span style="color: #000000">-</span><span style="color: #1C01CE">200</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) <span style="color: #000000">scaled_translated_wing</span>(<span style="color: #1C01CE">20</span>);
+<span style="color: #000000">scaled_translated_wing</span>(<span style="color: #1C01CE">50</span>);
+<span style="color: #A90D91">translate</span>([<span style="color: #1C01CE">200</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) <span style="color: #000000">scaled_translated_wing</span>(<span style="color: #1C01CE">500</span>);
+</code></pre></div>
+
+
+<figure class="full">
+    
+        <img src="https://rluckom.github.io/interesting-shapes/img/scaled_translated_wing_comparison.png" />
+    
+    
+    <figcaption>
+        <h4>Comparison of 20, 50, and 500 steps. Higher numbers of steps make it look smoother at the cost of longer rendering times</h4>
+        
+    </figcaption>
+    
+</figure>
+
+
+<p>As the figure shows, it&rsquo;s possible to approximate a smooth distortion
+if I&rsquo;m willing to pay a significant price in rendering time. As I said
+before, this can be an expensive technique, but its flexibility, and
+the fact that it can be applied to arbitary 3D shapes sometimes make it
+the best tool for the job.</p>
+
+<p>Note that a big factor that affects rendering time is the number of
+parts that a model has. Each step consists of about three parts for
+rendering purposes:</p>
+
+<ul>
+<li>the whole wing, translated;</li>
+<li>the cylinder that intersects it</li>
+<li>the intersection of the wing and the cylinder</li>
+</ul>
+
+<p>That means that for 500 steps, OpenSCAD is rendering 1500 objects. This is
+why it&rsquo;s often better to construct a custom distortion field procedure
+rather than &ldquo;stacking&rdquo; a set of generic ones. For instance, if I wrote a
+<code>scale_field</code> module that did a linear scaling of an object the same
+way the <code>translate_field</code> does a translation, and I had an object that I
+wanted to both scale and translate, I <em>could</em> use the following code</p>
+<div class="highlight" style="background: #ffffff"><pre style="line-height: 125%"><code class="language-openscad" data-lang="openscad"><span></span><span style="color: #A90D91">module</span> <span style="color: #000000">scaled_translated_wing</span>(<span style="color: #000000">steps</span>) {
+  <span style="color: #000000">translate_field</span>(<span style="color: #1C01CE">600</span>, <span style="color: #1C01CE">203</span>, <span style="color: #000000">steps</span>, [<span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>], [<span style="color: #1C01CE">100</span>, <span style="color: #1C01CE">0</span>, <span style="color: #1C01CE">0</span>]) {
+    <span style="color: #000000">scale_field</span>(<span style="color: #1C01CE">600</span>, <span style="color: #1C01CE">203</span>, <span style="color: #000000">steps</span>, [<span style="color: #1C01CE">1</span>, <span style="color: #1C01CE">1</span>, <span style="color: #1C01CE">1</span>], [<span style="color: #1C01CE">0.4</span>, <span style="color: #1C01CE">0.4</span>, <span style="color: #1C01CE">1</span>]) {
+      <span style="color: #000000">extruded_airfoil</span>();
+    }
+  }
+}
+
+<span style="color: #000000">scaled_translated_wing</span>(<span style="color: #1C01CE">500</span>);
+</code></pre></div>
+
+<p>But this would be a Bad Idea, because first the <code>scale_field</code> would
+take the wing and generate 1500 parts from it, and then the <code>translate_field</code>
+would do the same, for a total of 3000 parts. In a moderately complicated
+model, where an object like this wing might be repeated a few times, the
+rendering time would quickly become infeasible. Instead, it would be better
+to write a custom <code>scale_and_translate</code> field that would apply both
+transformations in a single pass.</p>
+
+<p>Obviously, this technique is only a tool for situations where OpenSCAD doesn&rsquo;t
+have a better option built in. But in those situations it provides
+unparallelled flexibility. It&rsquo;s especially useful when you want to define
+a custom interpolation function. With a quadratic interpolation you can achieve
+a curved scaling or translation effect, which is often useful when you
+want a seamless transition between individual pieces that are meant
+to be screwed or glued together. It&rsquo;s also nice to have the ability to
+apply these kinds of effects <em>after</em> you have designed the individual
+parts, so that the design of the part itself isn&rsquo;t burdened with the
+detail of how it attaches to the rest of the system.</p>
+
+<p>All the code for this post is available in <a href="https://github.com/RLuckom/interesting-shapes">the associated github repo</a>.
+If you liked it, I encourage you to download a copy of <a href="http://www.openscad.org/">OpenSCAD</a>
+and try it out for yourself.</p>
+
+
+</article>
+
+
+<section class="post-nav">
+    <ul>
+        
+        <li>
+            <a href="https://rluckom.github.io/interesting-shapes/posts/some_functions_for_vases/"><i class="fa fa-chevron-circle-left"></i> Encapsulation and Abstraction in 3D: Modules for Vase Sculptures in OpenSCAD</a>
+        </li>
+        
+        
+    </ul>
+</section>
+    
+
+
+
+
+
+</main>
+    <footer>
+        <h6> | 
+            Rendered by <a href="https://gohugo.io" title="Hugo">Hugo</a> |
+            <a href="https://rluckom.github.io/interesting-shapes/index.xml">Subscribe</a></h6>
+    </footer>
+</div>
+<script src="https://rluckom.github.io/interesting-shapes/js/scripts.js"></script>
+</body>
+
+</html>

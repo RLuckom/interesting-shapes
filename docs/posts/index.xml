@@ -12,6 +12,16 @@
     
     
     <item>
+      <title>Distortion Fields in OpenSCAD: Computationally Expensive And Not Entirely Satisfying, But Good To Know Anyway</title>
+      <link>https://rluckom.github.io/interesting-shapes/posts/distortion_fields/</link>
+      <pubDate>Sun, 10 Dec 2017 07:09:34 -0500</pubDate>
+      
+      <guid>https://rluckom.github.io/interesting-shapes/posts/distortion_fields/</guid>
+      <description>This is the second in an occasional series about 3D models and prints that I design. The code for this post, and some 3D models, are available in the associated github repo. The code for this post was largely inspired by the bending procedures posted to Thingiverse by the user flavius
+In the previous post, I described how to use the children module in OpenSCAD to repeat models in regular patterns&amp;ndash;specifically, to make cylindrical tiled vase sculptures.</description>
+    </item>
+    
+    <item>
       <title>Encapsulation and Abstraction in 3D: Modules for Vase Sculptures in OpenSCAD</title>
       <link>https://rluckom.github.io/interesting-shapes/posts/some_functions_for_vases/</link>
       <pubDate>Sun, 10 Dec 2017 07:09:34 -0500</pubDate>
